@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2010-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@ import java.util.Map.Entry;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.auth.ClasspathPropertiesFileCredentialsProvider;
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.sqs.AmazonSQS;
@@ -37,26 +38,36 @@ import com.amazonaws.services.sqs.model.SendMessageRequest;
  * Services developer account, and be signed up to use Amazon SQS. For more
  * information on Amazon SQS, see http://aws.amazon.com/sqs.
  * <p>
- * <b>Important:</b> Be sure to fill in your AWS access credentials in the
- *                   AwsCredentials.properties file before you try to run this
- *                   sample.
- * http://aws.amazon.com/security-credentials
+ * Fill in your AWS access credentials in the provided credentials file
+ * template, and be sure to move the file to the default location
+ * (~/.aws/credentials) where the sample code will load the credentials from.
+ * <p>
+ * <b>WARNING:</b> To avoid accidental leakage of your credentials, DO NOT keep
+ * the credentials file in your source directory.
  */
 public class SimpleQueueServiceSample {
 
     public static void main(String[] args) throws Exception {
+
         /*
-         * This credentials provider implementation loads your AWS credentials
-         * from a properties file at the root of your classpath.
-         *
-         * Important: Be sure to fill in your AWS access credentials in the
-         *            AwsCredentials.properties file before you try to run this
-         *            sample.
-         * http://aws.amazon.com/security-credentials
+         * The ProfileCredentialsProvider will return your [default]
+         * credential profile by reading from the credentials file located at
+         * (~/.aws/credentials).
          */
-        AmazonSQS sqs = new AmazonSQSClient(new ClasspathPropertiesFileCredentialsProvider());
-		Region usWest2 = Region.getRegion(Regions.US_WEST_2);
-		sqs.setRegion(usWest2);
+        AWSCredentials credentials = null;
+        try {
+            credentials = new ProfileCredentialsProvider().getCredentials();
+        } catch (Exception e) {
+            throw new AmazonClientException(
+                    "Cannot load the credentials from the credential profiles file. " +
+                    "Please make sure that your credentials file is at the correct " +
+                    "location (~/.aws/credentials), and is in valid format.",
+                    e);
+        }
+
+        AmazonSQS sqs = new AmazonSQSClient(credentials);
+        Region usWest2 = Region.getRegion(Regions.US_WEST_2);
+        sqs.setRegion(usWest2);
 
         System.out.println("===========================================");
         System.out.println("Getting Started with Amazon SQS");
@@ -99,8 +110,8 @@ public class SimpleQueueServiceSample {
 
             // Delete a message
             System.out.println("Deleting a message.\n");
-            String messageRecieptHandle = messages.get(0).getReceiptHandle();
-            sqs.deleteMessage(new DeleteMessageRequest(myQueueUrl, messageRecieptHandle));
+            String messageReceiptHandle = messages.get(0).getReceiptHandle();
+            sqs.deleteMessage(new DeleteMessageRequest(myQueueUrl, messageReceiptHandle));
 
             // Delete a queue
             System.out.println("Deleting the test queue.\n");
